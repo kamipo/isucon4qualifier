@@ -140,16 +140,12 @@ sub locked_users {
     push @user_ids, $row->{login};
   }
 
-  # ログイン成功したユーザを返す
-  my $last_succeeds = $self->db->select_all('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
+  # thresholdにひっかかったユーザ
+  my $rows = $self->db->select_all('SELECT login_log.login, COUNT(1) AS cnt FROM login_log INNER JOIN (SELECT user_id, login_log_id FROM last_login_success_user_id) AS t ON t.user_id = login_log.user_id WHERE succeeded = 0 AND login_log_id < id GROUP BY login_log.user_id');
 
-  foreach my $row (@$last_succeeds) {
-    my $count = $self->db->select_one('SELECT COUNT(1) AS cnt FROM login_log WHERE user_id = ? AND ? < id', $row->{user_id}, $row->{last_login_id});
-    if ($threshold <= $count) {
-      push @user_ids, $row->{login};
-    }
+  for my $row (@$rows) {
+      push @user_ids, $row->{} if ($threshold <= $row->{cnt})
   }
-
   \@user_ids;
 };
 
