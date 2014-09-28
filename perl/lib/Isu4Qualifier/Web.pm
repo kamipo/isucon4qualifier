@@ -45,7 +45,7 @@ sub calculate_password_hash {
 sub user_locked {
   my ($self, $user) = @_;
   my $log = $self->db->select_row(
-    'SELECT COUNT(1) AS failures FROM login_log WHERE user_id = ? AND id > IFNULL((select id from login_log where user_id = ? AND succeeded = 1 ORDER BY id DESC LIMIT 1), 0)',
+    'SELECT COUNT(1) AS failures FROM login_log WHERE user_id = ? AND id > IFNULL((select login_log_id from last_login_success_user_id where user_id = ?), 0)',
     $user->{'id'}, $user->{'id'});
 
   $self->config->{user_lock_threshold} <= $log->{failures};
@@ -54,7 +54,7 @@ sub user_locked {
 sub ip_banned {
   my ($self, $ip) = @_;
   my $log = $self->db->select_row(
-    'SELECT COUNT(1) AS failures FROM login_log WHERE ip = ? AND id > IFNULL((select id from login_log where ip = ? AND succeeded = 1 ORDER BY id DESC LIMIT 1), 0)',
+    'SELECT COUNT(1) AS failures FROM login_log WHERE ip = ? AND id > IFNULL((select login_log_id from last_login_success_ip where ip = ?), 0)',
     $ip, $ip);
 
   $self->config->{ip_ban_threshold} <= $log->{failures};
