@@ -134,10 +134,12 @@ sub locked_users {
   my $threshold = $self->config->{user_lock_threshold};
 
   # (login id が正しいもので)ログイン成功しなかったユーザを返す
-  my $not_succeeded = $self->db->select_all('SELECT login_log.login, count(1) AS cnt FROM login_log LEFT OUTER JOIN last_login_success_user_id ON last_login_success_user_id.user_id = login_log.user_id WHERE last_login_success_user_id.user_id = NULL GROUP BY login_log.user_id');
+  my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
+  # my $not_succeeded = $self->db->select_all('SELECT login_log.login, count(1) AS cnt FROM login_log LEFT OUTER JOIN last_login_success_user_id ON last_login_success_user_id.user_id = login_log.user_id WHERE last_login_success_user_id.user_id = NULL GROUP BY login_log.user_id');
 
   foreach my $row (@$not_succeeded) {
-      push @user_ids, $row->{login} if ($threshold <= $row->{cnt})
+      push @user_ids, $row->{login};
+  #     push @user_ids, $row->{login} if ($threshold <= $row->{cnt})
   }
 
   # thresholdにひっかかったユーザ
