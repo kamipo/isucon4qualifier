@@ -44,7 +44,7 @@ sub calculate_password_hash {
 
 sub fetch_history {
   my ($self, $user_id, $ip) = @_;
-  if ($user_id) {
+  if ($user_id) { # login が users テーブルに無い場合は user_id=0 になるけど、ここではそういうレコード取る必要ないので、省いてる
     my $rows = $self->db->select_all(q{(
         SELECT 'user_id' AS name, count AS count, NULL AS ip, NULL AS created_at FROM last_login_failure_count_user_id WHERE user_id = ?
       ) UNION (
@@ -97,22 +97,6 @@ sub attempt_login {
   }
 };
 
-sub current_user {
-  my ($self, $user_id) = @_;
-
-  $self->db->select_one('SELECT 1 FROM users WHERE id = ?', $user_id);
-};
-
-sub last_login {
-  my ($self, $user_id) = @_;
-
-  my $logs = $self->db->select_all(
-   'SELECT * FROM login_log WHERE succeeded = 1 AND user_id = ? ORDER BY id DESC LIMIT 2',
-   $user_id);
-
-  @$logs[-1];
-};
-
 sub banned_ips {
   my ($self) = @_;
   my @ips;
@@ -139,7 +123,7 @@ sub locked_users {
   my $threshold = $self->config->{user_lock_threshold};
 
   # (login id が正しいもので)ログイン成功しなかったユーザを返す
-  my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
+  my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id != 0 AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
   # my $not_succeeded = $self->db->select_all('SELECT login_log.login, count(1) AS cnt FROM login_log LEFT OUTER JOIN last_login_success_user_id ON last_login_success_user_id.user_id = login_log.user_id WHERE last_login_success_user_id.user_id = NULL GROUP BY login_log.user_id');
 
   foreach my $row (@$not_succeeded) {
@@ -160,7 +144,7 @@ sub login_log {
   my ($self, $succeeded, $login, $ip, $user_id) = @_;
   $self->db->query(
     'INSERT INTO login_log (`created_at`, `user_id`, `login`, `ip`, `succeeded`) VALUES (NOW(),?,?,?,?)',
-    $user_id, $login, $ip, ($succeeded ? 1 : 0)
+    (defined $user_id ? $user_id : 0) , $login, $ip, ($succeeded ? 1 : 0)
   );
 };
 
