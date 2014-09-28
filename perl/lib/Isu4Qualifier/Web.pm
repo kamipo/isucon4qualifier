@@ -45,7 +45,7 @@ sub calculate_password_hash {
 sub user_locked {
   my ($self, $user) = @_;
   my $log = $self->db->select_row(
-    'SELECT COUNT(1) AS failures FROM login_log WHERE user_id = ? AND id > IFNULL((select id from login_log where user_id = ? AND succeeded = 1 ORDER BY id DESC LIMIT 1), 0)',
+    'SELECT COUNT(1) AS failures FROM login_log WHERE user_id = ? AND id > IFNULL((select login_log_id from last_login_success_user_id where user_id = ?), 0)',
     $user->{'id'}, $user->{'id'});
 
   $self->config->{user_lock_threshold} <= $log->{failures};
@@ -54,7 +54,7 @@ sub user_locked {
 sub ip_banned {
   my ($self, $ip) = @_;
   my $log = $self->db->select_row(
-    'SELECT COUNT(1) AS failures FROM login_log WHERE ip = ? AND id > IFNULL((select id from login_log where ip = ? AND succeeded = 1 ORDER BY id DESC LIMIT 1), 0)',
+    'SELECT COUNT(1) AS failures FROM login_log WHERE ip = ? AND id > IFNULL((select login_log_id from last_login_success_ip where ip = ?), 0)',
     $ip, $ip);
 
   $self->config->{ip_ban_threshold} <= $log->{failures};
@@ -109,6 +109,7 @@ sub banned_ips {
   my @ips;
   my $threshold = $self->config->{ip_ban_threshold};
 
+  # ログイン成功した事がない ip address だけを絞り込む
   my $not_succeeded = $self->db->select_all('SELECT ip FROM (SELECT ip, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY ip) AS t0 WHERE t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
 
   foreach my $row (@$not_succeeded) {
@@ -132,12 +133,14 @@ sub locked_users {
   my @user_ids;
   my $threshold = $self->config->{user_lock_threshold};
 
+  # (login id が正しいもので)ログイン成功しなかったユーザを返す
   my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
 
   foreach my $row (@$not_succeeded) {
     push @user_ids, $row->{login};
   }
 
+  # ログイン成功したユーザを返す
   my $last_succeeds = $self->db->select_all('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
 
   foreach my $row (@$last_succeeds) {
