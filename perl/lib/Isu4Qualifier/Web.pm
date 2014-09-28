@@ -66,7 +66,7 @@ sub fetch_history {
   my ($self, $user_id, $ip) = @_;
   if ($user_id) {
     my $rows = $self->db->select_all(q{(
-        SELECT 'user_id' AS name, count AS count, NULL AS ip, NULL AS created_at FROM last_login_failure_count_user_id WHERE user_id = 195860
+        SELECT 'user_id' AS name, count AS count, NULL AS ip, NULL AS created_at FROM last_login_failure_count_user_id WHERE user_id = ?
       ) UNION (
         SELECT 'ip', count, NULL, NULL FROM last_login_failure_count_ip WHERE ip = ?
       ) UNION (
