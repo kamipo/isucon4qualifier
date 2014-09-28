@@ -173,8 +173,7 @@ filter 'session' => sub {
 
 get '/' => [qw(session)] => sub {
   my ($self, $c) = @_;
-
-  $c->render('index.tx', { flash => $self->pop_flash($c) });
+  $c->render('index.tx');
 };
 
 post '/login' => sub {
@@ -192,18 +191,15 @@ post '/login' => sub {
     $c->req->env->{'psgix.session'}->{last_ip} = $user->{last_ip};
     $c->req->env->{'psgix.session'}->{last_at} = $user->{last_at};
     $c->redirect('/mypage');
+    return;
   }
-  else {
-    if ($err eq 'locked') {
-      $self->set_flash($c, 'This account is locked.');
-    }
-    elsif ($err eq 'banned') {
-      $self->set_flash($c, "You're banned.");
-    }
-    else {
-      $self->set_flash($c, 'Wrong username or password');
-    }
-    $c->redirect('/');
+
+  if ($err eq 'locked') {
+      $c->redirect('/?error=locked');
+  } elsif ($err eq 'banned') {
+      $c->redirect('/?error=banned');
+  } else {
+      $c->redirect('/?error=not_found');
   }
 };
 
@@ -220,8 +216,7 @@ get '/mypage' => [qw(session)] => sub {
     } });
   }
   else {
-    $self->set_flash($c, "You must be logged in");
-    $c->redirect('/');
+    $c->redirect('/?error=not_login');
   }
 };
 
