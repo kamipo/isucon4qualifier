@@ -200,7 +200,7 @@ post '/login' => sub {
   my ($user, $err) = $self->attempt_login(
     $c->req->param('login'),
     $c->req->param('password'),
-    $c->req->address
+    $c->req->env->('X-Forwarded-For')
   );
 
   if ($user && $user->{id}) {
@@ -228,8 +228,7 @@ get '/mypage' => [qw(session)] => sub {
   my $msg;
 
   if ($user) {
-      my $login = $self->last_login($user_id);
-      $login->{test} = Dumper $c->req->env;
+    my $login = $self->last_login($user_id);
     $c->render('mypage.tx', { last_login => $login });
   }
   else {
