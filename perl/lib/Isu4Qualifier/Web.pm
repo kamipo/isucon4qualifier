@@ -83,6 +83,8 @@ sub attempt_login {
 
   if ($user && calculate_password_hash($password, $user->{salt}) eq $user->{password_hash}) {
     $self->login_log(1, $login, $ip, $user->{id});
+    $user->{last_ip} = $history->{last}{ip};
+    $user->{last_at} = $history->{last}{created_at};
     return $user, undef;
   }
   elsif ($user) {
@@ -202,7 +204,9 @@ post '/login' => sub {
   );
 
   if ($user && $user->{id}) {
-    $c->req->env->{'psgix.session'}->{user_id} = $user->{id};
+    $c->req->env->{'psgix.session'}->{login}   = $user->{login};
+    $c->req->env->{'psgix.session'}->{last_ip} = $user->{last_ip};
+    $c->req->env->{'psgix.session'}->{last_at} = $user->{last_at};
     $c->redirect('/mypage');
   }
   else {
@@ -221,12 +225,15 @@ post '/login' => sub {
 
 get '/mypage' => [qw(session)] => sub {
   my ($self, $c) = @_;
-  my $user_id = $c->req->env->{'psgix.session'}->{user_id};
-  my $user = $self->current_user($user_id);
+  my $session = $c->req->env->{'psgix.session'};
   my $msg;
 
-  if ($user) {
-    $c->render('mypage.tx', { last_login => $self->last_login($user_id) });
+  if ($session->{login}) {
+    $c->render('mypage.tx', { last_login => +{
+        login      => $session->{login},
+        ip         => $session->{last_ip},
+        created_at => $session->{last_at},
+    } });
   }
   else {
     $self->set_flash($c, "You must be logged in");
