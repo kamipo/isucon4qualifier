@@ -91,7 +91,7 @@ sub attempt_login {
 sub current_user {
   my ($self, $user_id) = @_;
 
-  $self->db->select_row('SELECT * FROM users WHERE id = ?', $user_id);
+  $self->db->select_one('SELECT 1 FROM users WHERE id = ?', $user_id);
 };
 
 sub last_login {
