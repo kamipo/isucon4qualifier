@@ -97,22 +97,6 @@ sub attempt_login {
   }
 };
 
-sub current_user {
-  my ($self, $user_id) = @_;
-
-  $self->db->select_one('SELECT 1 FROM users WHERE id = ?', $user_id);
-};
-
-sub last_login {
-  my ($self, $user_id) = @_;
-
-  my $logs = $self->db->select_all(
-   'SELECT * FROM login_log WHERE succeeded = 1 AND user_id = ? ORDER BY id DESC LIMIT 2',
-   $user_id);
-
-  @$logs[-1];
-};
-
 sub banned_ips {
   my ($self) = @_;
   my @ips;
