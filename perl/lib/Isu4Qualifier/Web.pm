@@ -70,7 +70,7 @@ sub fetch_history {
       ) UNION (
         SELECT 'ip', count, NULL, NULL FROM last_login_failure_count_ip WHERE ip = ?
       ) UNION (
-          SELECT 'last', ip, created_at FROM login_log WHERE user_id=? ORDER BY id DESC LIMIT 1
+          SELECT 'last', NULL, ip, created_at FROM login_log WHERE user_id=? ORDER BY id DESC LIMIT 1
       )},
       $user_id, $ip, $user_id,
     );
