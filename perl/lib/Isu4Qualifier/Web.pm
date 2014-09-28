@@ -190,8 +190,7 @@ post '/login' => sub {
     $c->req->env->{'psgix.session'}->{login}   = $user->{login};
     $c->req->env->{'psgix.session'}->{last_ip} = $user->{last_ip};
     $c->req->env->{'psgix.session'}->{last_at} = $user->{last_at};
-    $c->redirect('/mypage');
-    return;
+    return $c->redirect('/mypage');
   }
 
   if ($err eq 'locked') {
