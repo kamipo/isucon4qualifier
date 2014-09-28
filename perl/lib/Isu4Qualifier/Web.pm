@@ -189,8 +189,7 @@ filter 'session' => sub {
 
 get '/' => [qw(session)] => sub {
   my ($self, $c) = @_;
-
-  $c->render('index.tx', { flash => $self->pop_flash($c) });
+  $c->render('index.tx');
 };
 
 post '/login' => sub {
