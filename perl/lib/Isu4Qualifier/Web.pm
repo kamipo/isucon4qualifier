@@ -116,15 +116,11 @@ sub banned_ips {
     push @ips, $row->{ip};
   }
 
-  my $last_succeeds = $self->db->select_all('SELECT ip, MAX(id) AS last_login_id FROM login_log WHERE succeeded = 1 GROUP by ip');
+  my $rows = $self->db->select_all('SELECT login_log.ip, COUNT(1) AS cnt FROM login_log INNER JOIN (SELECT ip, login_log_id FROM last_login_success_ip) AS t ON t.ip = login_log.ip WHERE succeeded = 0 AND login_log_id < id GROUP BY login_log.ip');
 
-  foreach my $row (@$last_succeeds) {
-    my $count = $self->db->select_one('SELECT COUNT(1) AS cnt FROM login_log WHERE ip = ? AND ? < id', $row->{ip}, $row->{last_login_id});
-    if ($threshold <= $count) {
-      push @ips, $row->{ip};
-    }
+  for my $row (@$rows) {
+      push @ips, $row->{ip} if ($threshold <= $row->{cnt});
   }
-
   \@ips;
 };
 
