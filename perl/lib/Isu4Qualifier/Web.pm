@@ -42,26 +42,6 @@ sub calculate_password_hash {
   sha256_hex($password . ':' . $salt);
 };
 
-sub user_locked {
-  my ($self, $user) = @_;
-  my $log = $self->db->select_row(
-    'SELECT count FROM last_login_failure_count_user_id WHERE user_id = ?',
-    $user->{'id'});
-  return 0 unless $log;
-
-  $self->config->{user_lock_threshold} <= $log->{count};
-};
-
-sub ip_banned {
-  my ($self, $ip) = @_;
-  my $log = $self->db->select_row(
-    'SELECT count FROM last_login_failure_count_ip WHERE ip = ?',
-    $ip);
-  return 0 unless $log;
-
-  $self->config->{ip_ban_threshold} <= $log->{count};
-};
-
 sub fetch_history {
   my ($self, $user_id, $ip) = @_;
   if ($user_id) {
@@ -92,13 +72,11 @@ sub attempt_login {
   my $history = $self->fetch_history(($user ? $user->{id} : 0), $ip);
 
   if ($history->{ip} && $history->{ip}{count} && $history->{ip}{count} >= $self->config->{ip_ban_threshold}) {
-#  if ($self->ip_banned($ip)) {
     $self->login_log(0, $login, $ip, $user ? $user->{id} : undef);
     return undef, 'banned';
   }
 
   if ($history->{user_id} && $history->{user_id}{count} && $history->{user_id}{count} >= $self->config->{user_lock_threshold}) {
-#  if ($self->user_locked($user)) {
     $self->login_log(0, $login, $ip, $user->{id});
     return undef, 'locked';
   }
