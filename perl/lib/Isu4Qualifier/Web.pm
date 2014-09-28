@@ -216,7 +216,7 @@ post '/login' => sub {
   } elsif ($err eq 'banned') {
       $c->redirect('/?error=banned');
   } else {
-      $c->redirect('/?error=notfound');
+      $c->redirect('/?error=not_found');
   }
 };
 
@@ -233,8 +233,7 @@ get '/mypage' => [qw(session)] => sub {
     } });
   }
   else {
-    $self->set_flash($c, "You must be logged in");
-    $c->redirect('/');
+    $c->redirect('/?error=not_login');
   }
 };
 
