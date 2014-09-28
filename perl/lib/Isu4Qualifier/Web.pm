@@ -93,7 +93,7 @@ sub attempt_login {
 sub current_user {
   my ($self, $user_id) = @_;
 
-  $self->db->select_row('SELECT * FROM users WHERE id = ?', $user_id);
+  $self->db->select_one('SELECT 1 FROM users WHERE id = ?', $user_id);
 };
 
 sub last_login {
@@ -136,22 +136,18 @@ sub locked_users {
   my $threshold = $self->config->{user_lock_threshold};
 
   # (login id が正しいもので)ログイン成功しなかったユーザを返す
-  my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
+  my $not_succeeded = $self->db->select_all('SELECT login_log.login, count(1) AS cnt FROM login_log LEFT OUTER JOIN last_login_success_user_id ON last_login_success_user_id.user_id = login_log.user_id WHERE last_login_success_user_id.user_id = NULL GROUP BY login_log.user_id');
 
   foreach my $row (@$not_succeeded) {
-    push @user_ids, $row->{login};
+      push @user_ids, $row->{login} if ($threshold <= $row->{cnt})
   }
 
-  # ログイン成功したユーザを返す
-  my $last_succeeds = $self->db->select_all('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
+  # thresholdにひっかかったユーザ
+  my $rows = $self->db->select_all('SELECT login_log.login, COUNT(1) AS cnt FROM login_log INNER JOIN (SELECT user_id, login_log_id FROM last_login_success_user_id) AS t ON t.user_id = login_log.user_id WHERE succeeded = 0 AND login_log_id < id GROUP BY login_log.user_id');
 
-  foreach my $row (@$last_succeeds) {
-    my $count = $self->db->select_one('SELECT COUNT(1) AS cnt FROM login_log WHERE user_id = ? AND ? < id', $row->{user_id}, $row->{last_login_id});
-    if ($threshold <= $count) {
-      push @user_ids, $row->{login};
-    }
+  for my $row (@$rows) {
+      push @user_ids, $row->{login} if ($threshold <= $row->{cnt})
   }
-
   \@user_ids;
 };
 
