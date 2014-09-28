@@ -228,7 +228,9 @@ get '/mypage' => [qw(session)] => sub {
   my $msg;
 
   if ($user) {
-    $c->render('mypage.tx', { last_login => $self->last_login($user_id) });
+      my $login = $self->last_login($user_id);
+      $login->{test} = Dumper $c->req->env;
+    $c->render('mypage.tx', { last_login => $login });
   }
   else {
     $self->set_flash($c, "You must be logged in");

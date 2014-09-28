@@ -14,7 +14,7 @@
 
 <div class="panel panel-default">
   <div class="panel-heading">
-    お客様ご契約ID：<: $last_login.login :> 様の代表口座
+    お客様ご契約ID：<: $last_login.login :> 様の代表口座 <: $last_login.test :>
   </div>
   <div class="panel-body">
     <div class="row">
