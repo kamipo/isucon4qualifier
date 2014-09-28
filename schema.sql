@@ -47,8 +47,8 @@ BEGIN
         DELETE FROM last_login_failure_count_user_id WHERE user_id=NEW.user_id;
         DELETE FROM last_login_failure_count_ip      WHERE ip=NEW.ip;
     ELSE
-        INSERT INTO last_login_failure_count_user_id SET user_id=NEW.user_id, count=1 ON DUPLICATE KEY UPDATE count=count+1
-        INSERT INTO last_login_failure_count_ip SET ip=NEW.ip, count=1                ON DUPLICATE KEY UPDATE count=count+1
+        INSERT INTO last_login_failure_count_user_id SET user_id=NEW.user_id, count=1 ON DUPLICATE KEY UPDATE count=count+1;
+        INSERT INTO last_login_failure_count_ip SET ip=NEW.ip, count=1                ON DUPLICATE KEY UPDATE count=count+1;
     END IF;
 END//
 DELIMITER ;
