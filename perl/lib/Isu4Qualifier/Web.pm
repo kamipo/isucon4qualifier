@@ -159,12 +159,6 @@ sub login_log {
     'INSERT INTO login_log (`created_at`, `user_id`, `login`, `ip`, `succeeded`) VALUES (NOW(),?,?,?,?)',
     $user_id, $login, $ip, ($succeeded ? 1 : 0)
   );
-  if ($succeeded) {
-      $self->db->query(
-          'UPDATE last_succeeded_ids SET log_id = (select id from login_log WHERE user_id = ? AND succeeded = 1 ORDER BY id DESC LIMIT 1) WHERE user_id = ?',
-          $user_id, $user_id
-      );
-  }
 };
 
 sub set_flash {
