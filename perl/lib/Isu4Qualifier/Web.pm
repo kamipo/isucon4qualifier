@@ -200,7 +200,7 @@ post '/login' => sub {
   my ($user, $err) = $self->attempt_login(
     $c->req->param('login'),
     $c->req->param('password'),
-    $c->req->env->('X-Forwarded-For')
+    $c->req->env->{'X-Forwarded-For'}
   );
 
   if ($user && $user->{id}) {
