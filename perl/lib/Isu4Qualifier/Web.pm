@@ -109,6 +109,7 @@ sub banned_ips {
   my @ips;
   my $threshold = $self->config->{ip_ban_threshold};
 
+  # ログイン成功した事がない ip address だけを絞り込む
   my $not_succeeded = $self->db->select_all('SELECT ip FROM (SELECT ip, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY ip) AS t0 WHERE t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
 
   foreach my $row (@$not_succeeded) {
@@ -132,12 +133,14 @@ sub locked_users {
   my @user_ids;
   my $threshold = $self->config->{user_lock_threshold};
 
+  # (login id が正しいもので)ログイン成功しなかったユーザを返す
   my $not_succeeded = $self->db->select_all('SELECT user_id, login FROM (SELECT user_id, login, MAX(succeeded) as max_succeeded, COUNT(1) as cnt FROM login_log GROUP BY user_id) AS t0 WHERE t0.user_id IS NOT NULL AND t0.max_succeeded = 0 AND t0.cnt >= ?', $threshold);
 
   foreach my $row (@$not_succeeded) {
     push @user_ids, $row->{login};
   }
 
+  # ログイン成功したユーザを返す
   my $last_succeeds = $self->db->select_all('SELECT user_id, login, MAX(id) AS last_login_id FROM login_log WHERE user_id IS NOT NULL AND succeeded = 1 GROUP BY user_id');
 
   foreach my $row (@$last_succeeds) {
