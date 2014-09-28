@@ -62,16 +62,43 @@ sub ip_banned {
   $self->config->{ip_ban_threshold} <= $log->{count};
 };
 
+sub fetch_history {
+  my ($self, $user_id, $ip) = @_;
+  if ($user_id) {
+    my $rows = $self->db->select_all(q{(
+        SELECT 'user_id' AS name, count AS count, NULL AS ip, NULL AS created_at FROM last_login_failure_count_user_id WHERE user_id = 195860
+      ) UNION (
+        SELECT 'ip', count, NULL, NULL FROM last_login_failure_count_ip WHERE ip = ?
+      ) UNION (
+          SELECT 'last', ip, created_at FROM login_log WHERE user_id=? ORDER BY id DESC LIMIT 1
+      )},
+      $user_id, $ip, $user_id,
+    );
+
+    my %hash = map {
+      $_->{name} => $_
+    } @{ $rows };
+    \%hash;
+  } else {
+    my $log = $self->db->select_row('SELECT count FROM last_login_failure_count_ip WHERE ip = ?', $ip);
+    return { ip => $log };
+  }
+}
+
 sub attempt_login {
   my ($self, $login, $password, $ip) = @_;
   my $user = $self->db->select_row('SELECT * FROM users WHERE login = ?', $login);
 
-  if ($self->ip_banned($ip)) {
+  my $history = $self->fetch_history(($user ? $user->{id} : 0), $ip);
+
+  if ($history->{ip} && $history->{ip}{count} && $history->{ip}{count} >= $self->config->{ip_ban_threshold}) {
+#  if ($self->ip_banned($ip)) {
     $self->login_log(0, $login, $ip, $user ? $user->{id} : undef);
     return undef, 'banned';
   }
 
-  if ($self->user_locked($user)) {
+  if ($history->{user_id} && $history->{user_id}{count} && $history->{user_id}{count} >= $self->config->{user_lock_threshold}) {
+#  if ($self->user_locked($user)) {
     $self->login_log(0, $login, $ip, $user->{id});
     return undef, 'locked';
   }
